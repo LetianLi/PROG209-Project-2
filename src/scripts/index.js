@@ -5,6 +5,13 @@ canvas.width = 280*3;
 canvas.height = 280*2;
 document.body.appendChild(canvas);
 
+const mapLimits = {
+    left: 10,
+    right: canvas.width - 10,
+    top: 10,
+    bottom: canvas.height - 10
+};  
+
 // Setup some helpful classes
 class SpritesheetSprite {
     #image;
@@ -65,11 +72,58 @@ class Background {
     }
 }
 
+class Player extends SpritesheetSprite {
+    speed = 100;
+
+    constructor() {
+        super("images/player_spritesheet.png", 32, 32);
+    }
+
+    move(relX, relY) {
+        if (this.x + relX < mapLimits.left) {
+            this.x = mapLimits.left;
+        } else if (this.x + this.spriteWidth + relX > mapLimits.right) {
+            this.x = mapLimits.right - this.spriteWidth;
+        } else {
+            this.x += relX;
+        }
+        if (this.y + relY < mapLimits.top) {
+            this.y = mapLimits.top;
+        } else if (this.y + this.spriteHeight + relY > mapLimits.bottom) {
+            this.y = mapLimits.bottom - this.spriteHeight;
+        } else {
+            this.y += relY;
+        }
+
+    }
+}
+
 const background = new Background("images/floor_tile.png", 280, 280, 3, 2);
-const player = new SpritesheetSprite("images/player_spritesheet.png", 32, 32);
+const player = new Player();
 
 
-var render = function() {
+var keysDown = {};
+addEventListener("keydown", function (e) {
+    keysDown[e.key] = true;
+}, false);
+addEventListener("keyup", function (e) {
+    delete keysDown[e.key];
+}, false);
+
+
+function update(deltaTime) {
+    let relX = 0;
+    let relY = 0;
+    if (keysDown["ArrowLeft"]) relX -= 10;
+    if (keysDown["ArrowRight"]) relX += 10;
+    if (keysDown["ArrowUp"]) relY -= 10;
+    if (keysDown["ArrowDown"]) relY += 10;
+
+    player.move(relX * deltaTime/100, relY * deltaTime/100);
+}
+
+
+function render() {
     if (background.isReady) {
         background.draw();
     }
@@ -79,12 +133,20 @@ var render = function() {
 }
 
 // The main game loop
-var main = function () {
-    console.log("main()");
+function main() {
+    let now = performance.now();
+    let deltaTime = now - lastUpdateTime;
+    update(deltaTime);
+
     render();
-    //  Request to do this again ASAP
-    setTimeout(() => requestAnimationFrame(main), 1000); // slow update for testing purposes
+    document.getElementById("latencyDisplay").innerHTML = deltaTime.toFixed(1);
+
+    lastUpdateTime = now;
+
+    // Loop next animation frame
+    requestAnimationFrame(main);
 };
 
+let lastUpdateTime = performance.now();
 main();
 
