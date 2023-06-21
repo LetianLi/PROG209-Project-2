@@ -5,6 +5,18 @@ canvas.width = 280*3;
 canvas.height = 280*2;
 document.body.appendChild(canvas);
 
+var gameActive = true;
+function pauseResume() {
+    gameActive = !gameActive;
+    if (gameActive) {
+        lastUpdateTime = performance.now();
+        main();
+        document.getElementById("pauseBtn").innerHTML = "Pause";
+    } else {
+        document.getElementById("pauseBtn").innerHTML = "Play";
+    }
+}
+
 const mapLimits = {
     left: 10,
     right: canvas.width - 10,
@@ -114,10 +126,10 @@ addEventListener("keyup", function (e) {
 function update(deltaTime) {
     let relX = 0;
     let relY = 0;
-    if (keysDown["ArrowLeft"]) relX -= 10;
-    if (keysDown["ArrowRight"]) relX += 10;
-    if (keysDown["ArrowUp"]) relY -= 10;
-    if (keysDown["ArrowDown"]) relY += 10;
+    if (keysDown["ArrowLeft"] || keysDown["a"]) relX -= 10;
+    if (keysDown["ArrowRight"] || keysDown["d"]) relX += 10;
+    if (keysDown["ArrowUp"] || keysDown["w"]) relY -= 10;
+    if (keysDown["ArrowDown"] || keysDown["s"]) relY += 10;
 
     player.move(relX * deltaTime/100, relY * deltaTime/100);
 }
@@ -144,7 +156,7 @@ function main() {
     lastUpdateTime = now;
 
     // Loop next animation frame
-    requestAnimationFrame(main);
+    if (gameActive) requestAnimationFrame(main);
 };
 
 let lastUpdateTime = performance.now();
