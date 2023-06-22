@@ -1,8 +1,8 @@
-// Create the canvas
+// Create the canvas (will resize for smaller windows)
 var canvas = document.createElement("canvas");
 var canvasCtx = canvas.getContext("2d");
-canvas.width = 280*3;
-canvas.height = 280*2;
+canvas.width = Math.min(500, window.innerWidth * 0.9);
+canvas.height = Math.min(400, window.innerHeight * 0.9 - 100);
 document.body.appendChild(canvas);
 
 // Handle pausing and unpausing
