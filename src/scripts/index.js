@@ -29,6 +29,14 @@ document.addEventListener("visibilitychange", function() {
     }
 });
 
+// Nice helper function
+Math.range = function(value, min, max) {
+    return Math.min(Math.max(min, value), max);
+}
+Math.minClip = function(...args) {
+    return Math.max(0, Math.min(...args));
+}
+
 const mapLimits = {
     left: 10,
     right: canvas.width - 10,
@@ -153,8 +161,31 @@ class Player extends SpritesheetSprite {
         let maxDistanceUp = this.y - mapLimits.top;
         let maxDistanceDown = mapLimits.bottom - this.y - this.spriteHeight;
 
-        relX = Math.min(Math.max(-maxDistanceLeft, relX), maxDistanceRight);
-        relY = Math.min(Math.max(-maxDistanceUp, relY), maxDistanceDown);
+        rocks.forEach(rock => {
+            // on the same y level
+            if (this.y + this.spriteHeight > rock.y && this.y < rock.y + rock.spriteHeight) {
+                if (this.x + this.spriteWidth + relX > rock.x && this.x + relX < rock.x + rock.spriteWidth) {
+                    if (relX < 0) {
+                        maxDistanceLeft = Math.minClip(maxDistanceLeft, this.x - rock.x - rock.spriteWidth);
+                    } else if (relX > 0) {
+                        maxDistanceRight = Math.minClip(maxDistanceRight, rock.x - this.x - this.spriteWidth);
+                    }
+                }
+            }
+            // on the same x level
+            if (this.x + this.spriteWidth > rock.x && this.x < rock.x + rock.spriteWidth) {
+                if (this.y + this.spriteHeight + relY > rock.y && this.y + relY < rock.y + rock.spriteHeight) {
+                    if (relY < 0) {
+                        maxDistanceUp = Math.minClip(maxDistanceUp, this.y - rock.y - rock.spriteHeight);
+                    } else if (relY > 0) {
+                        maxDistanceDown = Math.minClip(maxDistanceDown, rock.y - this.y - this.spriteHeight);
+                    }
+                }
+            }
+        });
+
+        relX = Math.range(relX, -maxDistanceLeft, maxDistanceRight);
+        relY = Math.range(relY, -maxDistanceUp, maxDistanceDown);
         
         this.moving = !(relX == 0 && relY == 0);
         this.x += relX;
@@ -222,7 +253,7 @@ player.x = 50;
 player.y = 50;
 
 const rocks = [];
-for (let i = 0; i < 3; i++) {
+for (let i = 0; i < 8; i++) {
     const rock = new Rock("images/rock.png", 46, 32);
     rock.x = Math.floor(Math.random() * (canvas.width - rock.spriteWidth));
     rock.y = Math.floor(Math.random() * (canvas.height - rock.spriteHeight));
