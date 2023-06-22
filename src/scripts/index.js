@@ -18,7 +18,7 @@ function pauseResume() {
     }
     document.getElementById("info").innerHTML = "";
 }
-// Pause game if page is not focused
+// Pause game if page is not focused (unfortunately does not catch window changes)
 document.addEventListener("visibilitychange", function() {
     if (gameActive && document.visibilityState !== 'visible') {
         gameActive = false;
@@ -154,8 +154,33 @@ class Player extends SpritesheetSprite {
     }
 }
 
+class Slime extends SpritesheetSprite {
+    direction = "LEFT";
+    moving = false;
+    state = "IDLE";
+    speed = 100;
+
+    static #stateFrameMapping = { "IDLE": 0, "MOVING": 2, "DEATH": 4 };
+
+    constructor() {
+        super("images/slime_spritesheet.png", 32, 32, 10, 10);
+    }
+
+    draw() {
+        this.frame = (this.frame + 1) % (this.framesPerAnimation * this.animationCount);
+        var animationOffset = Math.floor(this.frame / this.framesPerAnimation);
+
+        let sheetX = animationOffset;
+        let sheetY = Slime.#stateFrameMapping[this.state];
+        super.draw(sheetX, sheetY);
+    }
+}
+
 const background = new Background("images/floor_tile.png", 280, 280, 3, 2);
 const player = new Player();
+const slime = new Slime();
+slime.x = 200;
+slime.y = 200;
 
 
 var keysDown = {};
@@ -185,6 +210,9 @@ function render() {
     }
     if (player.isReady) {
         player.draw(0, 0);
+    }
+    if (slime.isReady) {
+        slime.draw();
     }
 }
 
