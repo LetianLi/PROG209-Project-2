@@ -106,6 +106,30 @@ class Background {
     }
 }
 
+class Rock {
+    #image;
+    spriteWidth;
+    spriteHeight;
+    isReady = false;
+    x = 0;
+    y = 0;
+
+    constructor(src, width, height) {
+        this.#image = new Image();
+        this.#image.src = src;
+        this.#image.onload = () => {
+            this.isReady = true;
+            console.log("Finished loading image " + src);
+        }
+        this.spriteWidth = width;
+        this.spriteHeight = height;
+    }
+
+    draw() {
+        canvasCtx.drawImage(this.#image, this.x, this.y);
+    }
+}
+
 class Player extends SpritesheetSprite {
     direction = "DOWN";
     moving = false;
@@ -131,10 +155,10 @@ class Player extends SpritesheetSprite {
 
         relX = Math.min(Math.max(-maxDistanceLeft, relX), maxDistanceRight);
         relY = Math.min(Math.max(-maxDistanceUp, relY), maxDistanceDown);
-
+        
         this.moving = !(relX == 0 && relY == 0);
         this.x += relX;
-            this.y += relY;
+        this.y += relY;
     }
 
     draw() {
@@ -194,12 +218,27 @@ class Slime extends SpritesheetSprite {
 
 const background = new Background("images/floor_tile.png", 280, 280, 3, 2);
 const player = new Player();
+player.x = 50;
+player.y = 50;
+
+const rocks = [];
+for (let i = 0; i < 3; i++) {
+    const rock = new Rock("images/rock.png", 46, 32);
+    rock.x = Math.floor(Math.random() * (canvas.width - rock.spriteWidth));
+    rock.y = Math.floor(Math.random() * (canvas.height - rock.spriteHeight));
+    // try again if too close to player
+    if (!player.isInProximity(rock, 10)) rocks.push(rock);
+    else i--;
+}
+
 const enemies = [];
 for (let i = 0; i < 10; i++) {
     const slime = new Slime();
     slime.x = Math.floor(Math.random() * (canvas.width - slime.spriteWidth));
     slime.y = Math.floor(Math.random() * (canvas.height - slime.spriteHeight));
-    enemies.push(slime);
+    // try again if too close to player or a rock
+    if (slime.isInProximity(player, 10) || rocks.some(rock => slime.isInProximity(rock, 2))) i--; 
+    else enemies.push(slime);
 }
 
 
@@ -235,14 +274,22 @@ function render() {
     if (background.isReady) {
         background.draw();
     }
-    if (player.isReady) {
-        player.draw(0, 0);
-    }
+
+    rocks.forEach(rock => {
+        if (rock.isReady) {
+            rock.draw();
+        }
+    });
+
     enemies.forEach(slime => {
         if (slime.isReady) {
             slime.draw();
         }
     });
+
+    if (player.isReady) {
+        player.draw(0, 0);
+    }
 }
 
 // The main game loop
