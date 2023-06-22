@@ -30,8 +30,9 @@ class SpritesheetSprite {
     isReady = false;
     x = 0;
     y = 0;
+    frame = 0;
 
-    constructor(src, spriteWidth, spriteHeight) {
+    constructor(src, spriteWidth, spriteHeight, framesPerAnimation, animationCount) {
         this.#image = new Image();
         this.#image.src = src;
         this.#image.onload = () => {
@@ -40,9 +41,13 @@ class SpritesheetSprite {
         }
         this.spriteWidth = spriteWidth;
         this.spriteHeight = spriteHeight;
+        this.framesPerAnimation = framesPerAnimation;
+        this.animationCount = animationCount;
     }
 
     draw(sheetX = 0, sheetY = 0) {
+        sheetX = Math.round(sheetX);
+        sheetY = Math.round(sheetY);
         canvasCtx.drawImage(this.#image, this.spriteWidth*sheetX, this.spriteHeight*sheetY, this.spriteWidth, this.spriteHeight, this.x, this.y, this.spriteWidth, this.spriteHeight);
     }
 
@@ -85,28 +90,57 @@ class Background {
 }
 
 class Player extends SpritesheetSprite {
+    direction = "DOWN";
+    moving = false;
+    mining = false;
     speed = 100;
 
+    static #directionFrameMapping = {"DOWN":0, "LEFT":1, "RIGHT":2, "UP":3};
+
     constructor() {
-        super("images/player_spritesheet.png", 32, 32);
+        super("images/player_spritesheet.png", 32, 32, 10, 3);
     }
 
     move(relX, relY) {
+        this.moving = false;
+
         if (this.x + relX < mapLimits.left) {
             this.x = mapLimits.left;
+            this.direction = "LEFT";
         } else if (this.x + this.spriteWidth + relX > mapLimits.right) {
             this.x = mapLimits.right - this.spriteWidth;
+            this.direction = "RIGHT";
         } else {
+            if (relX < 0) this.direction = "LEFT";
+            if (relX > 0) this.direction = "RIGHT";
+            if (relX != 0) this.moving = true;
             this.x += relX;
         }
         if (this.y + relY < mapLimits.top) {
+            this.direction = "UP";
             this.y = mapLimits.top;
         } else if (this.y + this.spriteHeight + relY > mapLimits.bottom) {
+            this.direction = "DOWN";
             this.y = mapLimits.bottom - this.spriteHeight;
         } else {
+            if (relY < 0) this.direction = "UP";
+            if (relY > 0) this.direction = "DOWN";
+            if (relY != 0) this.moving = true;
             this.y += relY;
         }
+    }
 
+    draw() {
+        if (this.moving) {
+            this.frame = (this.frame + 1) % (this.framesPerAnimation * this.animationCount);
+            var animationOffset = Math.floor(this.frame / this.framesPerAnimation);
+        } else {
+            this.frame = 0;
+            var animationOffset = 1;
+        }
+        let sheetX = (this.mining ? 3 : 0) + animationOffset;
+        let sheetY = Player.#directionFrameMapping[this.direction];
+        super.draw(sheetX, sheetY);
     }
 }
 
