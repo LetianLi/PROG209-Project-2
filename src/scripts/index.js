@@ -5,6 +5,7 @@ canvas.width = 280*3;
 canvas.height = 280*2;
 document.body.appendChild(canvas);
 
+// Handle pausing and unpausing
 var gameActive = true;
 function pauseResume() {
     gameActive = !gameActive;
@@ -15,7 +16,16 @@ function pauseResume() {
     } else {
         document.getElementById("pauseBtn").innerHTML = "Play";
     }
+    document.getElementById("info").innerHTML = "";
 }
+// Pause game if page is not focused
+document.addEventListener("visibilitychange", function() {
+    if (gameActive && document.visibilityState !== 'visible') {
+        gameActive = false;
+        document.getElementById("pauseBtn").innerHTML = "Play";
+        document.getElementById("info").innerHTML = "Paused due to loss of focus";
+    }
+});
 
 const mapLimits = {
     left: 10,
