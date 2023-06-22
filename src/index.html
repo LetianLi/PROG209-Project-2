@@ -7,13 +7,15 @@
 </head>
 <body>
     <h2>Slime Hunter</h2>
+    <p>If the sprites are too small, hit [ctrl (+)] until visible and then <a href="" onclick="location.reload()">refresh</a> the page </p>
     <button id="pauseBtn" onclick="pauseResume()">Pause</button>
     <label id="info"></label>
     <button id="restartBtn" style="display:none" onclick="location.reload()">Restart</button>
     <br>
-
-    <label>Latency: <label id="latencyDisplay"></label> ms</label>
     <br>
+    <section id="game"></section>
+    <label>Latency: <label id="latencyDisplay"></label> ms</label>
+
     <script src="scripts/index.js" type="text/javascript"></script>
 </body>
 </html>

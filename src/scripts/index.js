@@ -2,8 +2,8 @@
 var canvas = document.createElement("canvas");
 var canvasCtx = canvas.getContext("2d");
 canvas.width = Math.min(500, window.innerWidth * 0.9);
-canvas.height = Math.min(400, window.innerHeight * 0.9 - 100);
-document.body.appendChild(canvas);
+canvas.height = Math.min(400, window.innerHeight * 0.9 - 140);
+document.getElementById("game").appendChild(canvas);
 
 // Handle pausing and unpausing
 var gameActive = true;
@@ -119,32 +119,22 @@ class Player extends SpritesheetSprite {
     }
 
     move(relX, relY) {
-        this.moving = false;
+        if (relX < 0) this.direction = "LEFT";
+        else if (relX > 0) this.direction = "RIGHT";
+        else if (relY < 0) this.direction = "UP";
+        else if (relY > 0) this.direction = "DOWN";
 
-        if (this.y + relY < mapLimits.top) {
-            this.direction = "UP";
-            this.y = mapLimits.top;
-        } else if (this.y + this.spriteHeight + relY > mapLimits.bottom) {
-            this.direction = "DOWN";
-            this.y = mapLimits.bottom - this.spriteHeight;
-        } else {
-            if (relY < 0) this.direction = "UP";
-            if (relY > 0) this.direction = "DOWN";
-            if (relY != 0) this.moving = true;
+        let maxDistanceLeft = this.x - mapLimits.left;
+        let maxDistanceRight = mapLimits.right - this.x - this.spriteWidth;
+        let maxDistanceUp = this.y - mapLimits.top;
+        let maxDistanceDown = mapLimits.bottom - this.y - this.spriteHeight;
+
+        relX = Math.min(Math.max(-maxDistanceLeft, relX), maxDistanceRight);
+        relY = Math.min(Math.max(-maxDistanceUp, relY), maxDistanceDown);
+
+        this.moving = !(relX == 0 && relY == 0);
+        this.x += relX;
             this.y += relY;
-        }
-        if (this.x + relX < mapLimits.left) {
-            this.x = mapLimits.left;
-            this.direction = "LEFT";
-        } else if (this.x + this.spriteWidth + relX > mapLimits.right) {
-            this.x = mapLimits.right - this.spriteWidth;
-            this.direction = "RIGHT";
-        } else {
-            if (relX < 0) this.direction = "LEFT";
-            if (relX > 0) this.direction = "RIGHT";
-            if (relX != 0) this.moving = true;
-            this.x += relX;
-        }
     }
 
     draw() {
@@ -199,12 +189,6 @@ class Slime extends SpritesheetSprite {
 
     isDead() {
         return this.state === "DEATH" && this.frame == 40;
-    }
-}
-
-class Map {
-    constructor() {
-
     }
 }
 
