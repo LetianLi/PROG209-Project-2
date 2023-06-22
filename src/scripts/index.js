@@ -7,23 +7,25 @@ document.body.appendChild(canvas);
 
 // Handle pausing and unpausing
 var gameActive = true;
+var gameWon = false;
 function pauseResume() {
     gameActive = !gameActive;
     if (gameActive) {
         lastUpdateTime = performance.now();
+        keysDown = {}; // reset keys just in case
         main();
         document.getElementById("pauseBtn").innerHTML = "Pause";
     } else {
         document.getElementById("pauseBtn").innerHTML = "Play";
     }
-    document.getElementById("info").innerHTML = "";
+    if (!gameWon) document.getElementById("info").innerHTML = "";
 }
 // Pause game if page is not focused (unfortunately does not catch window changes)
 document.addEventListener("visibilitychange", function() {
     if (gameActive && document.visibilityState !== 'visible') {
         gameActive = false;
         document.getElementById("pauseBtn").innerHTML = "Play";
-        document.getElementById("info").innerHTML = "Paused due to loss of focus";
+        if (!gameWon) document.getElementById("info").innerHTML = "Paused due to loss of focus";
     }
 });
 
@@ -62,8 +64,13 @@ class SpritesheetSprite {
     }
 
     isColliding(other) {
-        return this.x > other.x && this.x < other.x + other.spriteWidth 
-                && this.y > other.y && this.y < other.y + other.spriteHeight;
+        return this.x + this.spriteWidth > other.x && this.x < other.x + other.spriteWidth 
+            && this.y + this.spriteHeight > other.y && this.y < other.y + other.spriteHeight;
+    }
+
+    isInProximity(other, distance = 10) {
+        return this.x + this.spriteWidth + distance > other.x && this.x < other.x + other.spriteWidth + distance
+            && this.y + this.spriteHeight + distance > other.y && this.y < other.y + other.spriteHeight + distance;
     }
 }
 
@@ -108,24 +115,12 @@ class Player extends SpritesheetSprite {
     static #directionFrameMapping = {"DOWN":0, "LEFT":1, "RIGHT":2, "UP":3};
 
     constructor() {
-        super("images/player_spritesheet.png", 32, 32, 10, 3);
+        super("images/player_spritesheet.png", 32, 32, 5, 3);
     }
 
     move(relX, relY) {
         this.moving = false;
 
-        if (this.x + relX < mapLimits.left) {
-            this.x = mapLimits.left;
-            this.direction = "LEFT";
-        } else if (this.x + this.spriteWidth + relX > mapLimits.right) {
-            this.x = mapLimits.right - this.spriteWidth;
-            this.direction = "RIGHT";
-        } else {
-            if (relX < 0) this.direction = "LEFT";
-            if (relX > 0) this.direction = "RIGHT";
-            if (relX != 0) this.moving = true;
-            this.x += relX;
-        }
         if (this.y + relY < mapLimits.top) {
             this.direction = "UP";
             this.y = mapLimits.top;
@@ -137,6 +132,18 @@ class Player extends SpritesheetSprite {
             if (relY > 0) this.direction = "DOWN";
             if (relY != 0) this.moving = true;
             this.y += relY;
+        }
+        if (this.x + relX < mapLimits.left) {
+            this.x = mapLimits.left;
+            this.direction = "LEFT";
+        } else if (this.x + this.spriteWidth + relX > mapLimits.right) {
+            this.x = mapLimits.right - this.spriteWidth;
+            this.direction = "RIGHT";
+        } else {
+            if (relX < 0) this.direction = "LEFT";
+            if (relX > 0) this.direction = "RIGHT";
+            if (relX != 0) this.moving = true;
+            this.x += relX;
         }
     }
 
@@ -157,30 +164,59 @@ class Player extends SpritesheetSprite {
 class Slime extends SpritesheetSprite {
     direction = "LEFT";
     moving = false;
-    state = "IDLE";
+    state = "MOVING";
     speed = 100;
+    color = 0;
 
     static #stateFrameMapping = { "IDLE": 0, "MOVING": 2, "DEATH": 4 };
 
     constructor() {
-        super("images/slime_spritesheet.png", 32, 32, 10, 10);
+        super("images/slime_spritesheet.png", 32, 32, 5, 10);
+        this.color = Math.floor(Math.random() * 4);
+        this.frame = Math.floor(Math.random() * 100);
     }
 
     draw() {
-        this.frame = (this.frame + 1) % (this.framesPerAnimation * this.animationCount);
+        if (this.state === "DEATH") {
+            this.frame = Math.min(40, this.frame + 2);
+        } else {
+            this.frame = (this.frame + 1) % (this.framesPerAnimation * this.animationCount);
+        }
         var animationOffset = Math.floor(this.frame / this.framesPerAnimation);
+        var colorOffset = this.color * 5;
 
         let sheetX = animationOffset;
-        let sheetY = Slime.#stateFrameMapping[this.state];
+        let sheetY = Slime.#stateFrameMapping[this.state] + colorOffset;
         super.draw(sheetX, sheetY);
+    }
+
+    kill() {
+        if (this.state !== "DEATH") {
+            this.state = "DEATH";
+            this.frame = 0;
+        }
+    }
+
+    isDead() {
+        return this.state === "DEATH" && this.frame == 40;
+    }
+}
+
+class Map {
+    constructor() {
+
     }
 }
 
 const background = new Background("images/floor_tile.png", 280, 280, 3, 2);
 const player = new Player();
-const slime = new Slime();
-slime.x = 200;
-slime.y = 200;
+const enemies = [];
+for (let i = 0; i < 10; i++) {
+    const slime = new Slime();
+    slime.x = Math.floor(Math.random() * (canvas.width - slime.spriteWidth));
+    slime.y = Math.floor(Math.random() * (canvas.height - slime.spriteHeight));
+    enemies.push(slime);
+}
 
 
 var keysDown = {};
@@ -201,6 +237,13 @@ function update(deltaTime) {
     if (keysDown["ArrowDown"] || keysDown["s"]) relY += 10;
 
     player.move(relX * deltaTime/100, relY * deltaTime/100);
+    player.mining = enemies.some(slime => player.isInProximity(slime));
+
+    enemies.forEach(slime => {
+        if (player.isColliding(slime)) {
+            slime.kill();
+        }
+    });
 }
 
 
@@ -211,9 +254,11 @@ function render() {
     if (player.isReady) {
         player.draw(0, 0);
     }
-    if (slime.isReady) {
-        slime.draw();
-    }
+    enemies.forEach(slime => {
+        if (slime.isReady) {
+            slime.draw();
+        }
+    });
 }
 
 // The main game loop
@@ -224,6 +269,12 @@ function main() {
 
     render();
     document.getElementById("latencyDisplay").innerHTML = deltaTime.toFixed(1);
+
+    if (enemies.every(slime => slime.isDead()) && !gameWon) {
+        gameWon = true;
+        document.getElementById("info").innerHTML = "<b>You win!!!!</b>";
+        document.getElementById("restartBtn").style = "display: inline-block";
+    }
 
     lastUpdateTime = now;
 
